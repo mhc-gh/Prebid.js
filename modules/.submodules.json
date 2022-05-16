@@ -1,11 +1,13 @@
 {
   "userId": [
+    "33acrossIdSystem",
     "admixerIdSystem",
     "adtelligentIdSystem",
     "akamaiDAPIdSystem",
     "amxIdSystem",
     "britepoolIdSystem",
     "connectIdSystem",
+    "cpexIdSystem",
     "criteoIdSystem",
     "dacIdSystem",
     "deepintentDpesIdSystem",
@@ -15,6 +17,7 @@
     "hadronIdSystem",
     "haloIdSystem",
     "id5IdSystem",
+    "ftrackIdSystem",
     "identityLinkIdSystem",
     "idxIdSystem",
     "imuIdSystem",
@@ -47,6 +50,7 @@
     "dfpAdServerVideo"
   ],
   "rtdModule": [
+    "airgridRtdProvider",
     "browsiRtdProvider",
     "dgkeywordRtdProvider",
     "geoedgeRtdProvider",
