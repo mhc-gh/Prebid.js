@@ -131,7 +131,7 @@ import * as events from '../../src/events.js';
 import {getGlobal} from '../../src/prebidGlobal.js';
 import {gdprDataHandler} from '../../src/adapterManager.js';
 import CONSTANTS from '../../src/constants.json';
-import {hook, module} from '../../src/hook.js';
+import {hook, module, ready as hooksReady} from '../../src/hook.js';
 import {buildEidPermissions, createEidsArray, USER_IDS_CONFIG} from './eids.js';
 import {getCoreStorageManager} from '../../src/storageManager.js';
 import {
@@ -152,6 +152,8 @@ import {
   isEmpty
 } from '../../src/utils.js';
 import {getPPID as coreGetPPID} from '../../src/adserver.js';
+import {promiseControls} from '../../src/utils/promise.js';
+import {hasPurpose1Consent} from '../../src/utils/gpdr.js';
 
 const MODULE_NAME = 'User ID';
 const COOKIE = 'cookie';
@@ -338,26 +340,6 @@ function storedConsentDataMatchesConsentData(storedConsentData, consentData) {
 }
 
 /**
- * test if consent module is present, applies, and is valid for local storage or cookies (purpose 1)
- * @param {ConsentData} consentData
- * @returns {boolean}
- */
-function hasGDPRConsent(consentData) {
-  if (consentData && typeof consentData.gdprApplies === 'boolean' && consentData.gdprApplies) {
-    if (!consentData.consentString) {
-      return false;
-    }
-    if (consentData.apiVersion === 1 && deepAccess(consentData, 'vendorData.purposeConsents.1') === false) {
-      return false;
-    }
-    if (consentData.apiVersion === 2 && deepAccess(consentData, 'vendorData.purpose.consents.1') === false) {
-      return false;
-    }
-  }
-  return true;
-}
-
-/**
    * Find the root domain
    * @param {string|undefined} fullDomain
    * @return {string}
@@ -529,42 +511,8 @@ function delayFor(ms) {
 const INIT_CANCELED = {};
 
 function idSystemInitializer({delay = delayFor} = {}) {
-  /**
-   * @returns a {promise, resolve, reject} trio where `promise` is resolved by calling `resolve` or `reject`.
-   */
-  function breakpoint() {
-    const [SUCCESS, FAIL, RESULT] = [0, 1, 2];
-    const status = {};
-
-    function finisher(slot) {
-      return function (val) {
-        if (status[slot] != null) {
-          status[slot](val);
-        } else {
-          status[slot] = true;
-          status[RESULT] = val;
-        }
-      }
-    }
-
-    return {
-      promise: new Promise((resolve, reject) => {
-        if (status[SUCCESS] != null) {
-          resolve(status[RESULT]);
-        } else if (status[FAIL] != null) {
-          reject(status[RESULT]);
-        } else {
-          status[SUCCESS] = resolve;
-          status[FAIL] = reject;
-        }
-      }),
-      resolve: finisher(SUCCESS),
-      reject: finisher(FAIL)
-    }
-  }
-
-  const startInit = breakpoint();
-  const startCallbacks = breakpoint();
+  const startInit = promiseControls();
+  const startCallbacks = promiseControls();
   let cancel;
   let initialized = false;
 
@@ -572,7 +520,7 @@ function idSystemInitializer({delay = delayFor} = {}) {
     if (cancel != null) {
       cancel.reject(INIT_CANCELED);
     }
-    cancel = breakpoint();
+    cancel = promiseControls();
     return Promise.race([promise, cancel.promise]);
   }
 
@@ -592,7 +540,7 @@ function idSystemInitializer({delay = delayFor} = {}) {
   }
 
   let done = cancelAndTry(
-    startInit.promise
+    Promise.all([hooksReady, startInit.promise])
       .then(() => gdprDataHandler.promise)
       .then(checkRefs((consentData) => {
         initSubmodules(initModules, allModules, consentData);
@@ -883,7 +831,7 @@ function populateSubmoduleId(submodule, consentData, storedConsentData, forceRef
 function initSubmodules(dest, submodules, consentData, forceRefresh = false) {
   // gdpr consent with purpose one is required, otherwise exit immediately
   let { userIdModules, hasValidated } = validateGdprEnforcement(submodules, consentData);
-  if (!hasValidated && !hasGDPRConsent(consentData)) {
+  if (!hasValidated && !hasPurpose1Consent(consentData)) {
     logWarn(`${MODULE_NAME} - gdpr permission not valid for local storage or cookies, exit module`);
     return [];
   }

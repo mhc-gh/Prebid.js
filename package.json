@@ -1,6 +1,6 @@
 {
   "name": "prebid.js",
-  "version": "6.25.0-pre",
+  "version": "7.6.0-pre",
   "description": "Header Bidding Management Library",
   "main": "src/prebid.js",
   "scripts": {
@@ -68,8 +68,6 @@
     "gulp-concat": "^2.6.0",
     "gulp-connect": "^5.7.0",
     "gulp-eslint": "^4.0.0",
-    "gulp-footer": "^2.0.2",
-    "gulp-header": "^2.0.9",
     "gulp-if": "^3.0.0",
     "gulp-js-escape": "^1.0.1",
     "gulp-replace": "^1.0.0",
@@ -126,7 +124,7 @@
     "express": "^4.15.4",
     "fun-hooks": "^0.9.9",
     "just-clone": "^1.0.2",
-    "live-connect-js": "2.3.1"
+    "live-connect-js": "2.3.3"
   },
   "optionalDependencies": {
     "fsevents": "^2.3.2"
